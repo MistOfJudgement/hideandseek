@@ -15,7 +15,7 @@ export default function App() {
       <NavigationContainer>
         <stack.Navigator>
             <stack.Screen name="Title" component={TitleScreen}/>
-            <stack.Screen name="Lobby" component={LobbyScreen} />
+            <stack.Screen name="Lobby" component={LobbyScreen}/>
             <stack.Screen name="Game" component={GameScreen} />
         </stack.Navigator>
       </NavigationContainer>

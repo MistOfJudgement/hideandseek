@@ -37,12 +37,13 @@
       "favicon": "./assets/favicon.png"
     },
     "extra": {
-      "router": {
-        "origin": false
-      },
       "eas": {
         "projectId": "be5e9bb4-87cc-4847-ae7d-55de0ffbf335"
       }
-    }
+    },
+    "plugins": [
+      ["expo-location",
+        {"isAndroidBackgroundLocationEnabled": true}]
+    ]
   }
 }
