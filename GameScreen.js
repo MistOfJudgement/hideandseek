@@ -2,22 +2,28 @@ import {View, Text} from "react-native";
 import {styles} from "./constants";
 import MapView, {Marker} from "react-native-maps";
 import {useEffect, useState} from "react";
-import * as Location from "expo-location"
-
-
+import * as Location from "expo-location";
+import * as TaskManager from "expo-task-manager";
 export default function GameScreen({navigation}) {
     const [loc, setLoc] = useState(null);
     const [errorMsg, setErrorMsg] = useState(null);
 
     useEffect(()=>{
         (async ()=>{
-            let {status} = await Location.requestForegroundPermissionsAsync();
-            if(status!=="granted") {
-                setErrorMsg("Permission to access locatoin was denied");
+            const fgPerm = await  Location.requestForegroundPermissionsAsync();
+            let fgSub = null;
+            if(!fgPerm.granted) {
                 return;
             }
-            let location = await Location.getCurrentPositionAsync();
-            setLoc(location);
+            const bgPerm = await Location.getBackgroundPermissionsAsync();
+            if(fgPerm.granted) {
+                fgSub = Location.watchPositionAsync({
+                        accuracy: Location.Accuracy.High,
+                        distanceInterval: 10
+                    },
+                    setLoc
+                );
+            }
         })();
     }, []);
     let text = "Waiting";
@@ -31,17 +37,17 @@ export default function GameScreen({navigation}) {
             <MapView
                 style={styles.map}
                 initialRegion={{
-                latitude:38.8303462,
-                longitude:-77.308008,
-                latitudeDelta:0.01,
-                longitudeDelta:0.01
-            }}
+                    latitude:38.8303462,
+                    longitude:-77.308008,
+                    latitudeDelta:0.01,
+                    longitudeDelta:0.01
+                }}
+                showsCompass={true}
+                showsUserLocation={true}
+                rotateEnabled={true}
             >
-                {
+                <Marker key={1} pinColor="RED" coordinate={{latitude:loc?.coords.latitude ?? 0 ,longitude:loc?.coords.longitude ?? 0}}/>
 
-                    loc ? (<Marker key={1} pinColor="RED" coordinate={{latitude:loc.latitude,longitude:loc.longitude}}/>) : null
-
-                }
             </MapView>
             <View style={styles.container}>
                 <Text>{text}</Text>

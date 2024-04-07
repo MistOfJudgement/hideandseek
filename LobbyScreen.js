@@ -7,7 +7,7 @@ export default function LobbyScreen({navigation}) {
     return (
         <View style={styles.container}>
             <Text>Lobby</Text>
-            <Button title="Start Game" onPress={navigation.navigate("Game")}/>
+            <Button title="Start Game" onPress={()=>navigation.navigate("Game")}/>
         </View>
     )
 }
