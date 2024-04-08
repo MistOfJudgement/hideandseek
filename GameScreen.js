@@ -1,26 +1,31 @@
 import {View, Text, Linking, Pressable} from "react-native";
 import {styles} from "./constants";
-import MapView, {Marker} from "react-native-maps";
+import MapView, {Marker, Polygon} from "react-native-maps";
 import {useEffect, useState} from "react";
 import * as Location from "expo-location";
 import * as TaskManager from "expo-task-manager";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import Modal from "react-native-modal"
+import {CheckBox, FAB} from '@rneui/themed'
+import {Dialog} from "@rneui/themed";
 
-function CircleButton({onPress}) {
-    return (
-        <View style={styles.circleButtonContainer}>
-            <Pressable style={styles.circleButton} onPress={onPress}>
-                <MaterialIcons name="add" size={38} color="#ffffff"/>
-            </Pressable>
-        </View>
-    )
+function randomRange(min, max) {
+    return Math.random()*(max-min)+min;
+}
+function randomLocation(min, max) {
+    const long = randomRange(min.longitude, max.longitude)
+    const lat  = randomRange(min.latitude, max.latitude)
+    return {longitude: long, latitude: lat}
 }
 
-
+const questions = ["Latitude", "Longitude"];
 const BACKGROUND_TASK_NAME = "BACKGROUND_LOCATION_TASK";
 let foregroundSubscription = null;
 const TIME_INTERVAL = 0;
 const DISTANCE_INTERVAL=1;
+const maxLoc = {latitude: 38.831366115945045, longitude:-77.30874202818364}
+const minLoc = {latitude: 38.83082521450529, longitude: -77.30633908984834}
+
 TaskManager.defineTask(BACKGROUND_TASK_NAME, async ({data, error}) => {
     if(error) {
         console.log(error);
@@ -36,11 +41,60 @@ TaskManager.defineTask(BACKGROUND_TASK_NAME, async ({data, error}) => {
     }
 
 })
+
 let markers = []
+
+function VerticalLine({coord, lr}) {
+    // console.log("coord: " + JSON.stringify(coord))
+    console.log("lr" + lr)
+    coord = coord.coords;
+    const coords = [
+        {latitude:coord.latitude+1, longitude:coord.longitude},
+        {latitude:coord.latitude-1, longitude:coord.longitude},
+        {latitude:coord.latitude-1, longitude:coord.longitude - (lr?-1: 1)},
+        {latitude:coord.latitude+1, longitude:coord.longitude - (lr?-1: 1)},
+    ]
+    // console.log("coords:" + JSON.stringify(coords))
+    return (
+        <Polygon coordinates={coords} fillColor={"#f0f7"}/>
+    )
+}
+
+function HorizontalLine({coord, ud}) {
+    coord = coord.coords;
+    const coords = [
+        {latitude:coord.latitude, longitude:coord.longitude-1},
+        {latitude:coord.latitude, longitude:coord.longitude+1},
+        {latitude:coord.latitude+(ud?-1:1), longitude:coord.longitude+1},
+        {latitude:coord.latitude+(ud?-1:1), longitude:coord.longitude-1},
+    ]
+
+    return (
+        <Polygon coordinates={coords} fillColor={"#f0f7"}/>
+    )
+}
 export default function GameScreen({navigation}) {
     const [loc, setLoc] = useState(null);
     const [errorMsg, setErrorMsg] = useState(null);
+    const [questionsVisible, setQuestionsVisible] = useState(false);
+    const [checked, setChecked] = useState(0);
+    const [hidingSpot, setHidingSpot] = useState(randomLocation(minLoc, maxLoc))
+    const [questionsAsked, setQuestionsAsked] = useState([])
 
+    console.log(hidingSpot)
+
+    function askLongitude() {
+        console.log("loc " + JSON.stringify(loc));
+        console.log("lat " + JSON.stringify(hidingSpot) )
+        const answer = loc.coords.longitude - hidingSpot.longitude > 0;
+        console.log("answer " + loc.longitude - hidingSpot.longitude)
+        setQuestionsAsked([...questionsAsked,{q: "longitude", a: {c:loc, d:answer}}]);
+    }
+
+    function askLatitude() {
+        const answer = loc.coords.latitude - hidingSpot.latitude < 0;
+        setQuestionsAsked([...questionsAsked, {q:"latitude", a: {c:loc, d: answer}}])
+    }
     useEffect(()=> {
         console.log("asdifuh")
         const requestLocationPerms = async () => {
@@ -140,21 +194,56 @@ export default function GameScreen({navigation}) {
                 showsUserLocation={true}
                 rotateEnabled={true}
             >
+                <Marker coordinate={hidingSpot} pinColor="blue"/>
                 {
                     markers.map((e, i)=>(
-                        <Marker coordinate={e} key={i}/>
+                        <Marker coordinate={e} key={i+1}/>
                         )
                     )
                 }
-            </MapView>
-                <View style={styles.container}>
-                    <CircleButton/>
-                </View>
-            {/*<View style={styles.container}>*/}
-            {/*    <Text>{text}</Text>*/}
-            {/*/!*<CircleButton onPress={()=>{}}/>*!/*/}
-            {/*</View>*/}
-        </View>
 
+                {
+                    questionsAsked.map((e,i)=>(
+                        e.q === "longitude" ? <VerticalLine coord={e.a.c} lr={e.a.d}/> : <HorizontalLine coord={e.a.c} ud={e.a.d}/>
+
+                    ))
+                }
+            </MapView>
+            <FAB
+                icon={{name:"add", color:"red"}}
+                onPress={()=>setQuestionsVisible(true)}/>
+            <Dialog
+                isVisible={questionsVisible}
+                onBackdropPress={()=>setQuestionsVisible(false)}
+            >
+                <Dialog.Title title="Choose a question"/>
+                {
+                    questions.map((e, i)=>(
+                        <CheckBox
+                        key={i}
+                        title={e}
+                        checkedIcon="dot-circle-o"
+                        uncheckedIcon="circle-o"
+                        checked={checked === i}
+                        onPress={()=>setChecked(i)}
+                    />
+                    ))
+                }
+                <Dialog.Actions>
+                    <Dialog.Button
+                        title="Confirm"
+                        onPress={()=> {
+                        console.log(`Asking ${questions[checked]} question`);
+                        if (questions[checked] === "Latitude") {
+                            askLatitude()
+                        } else {
+                            askLongitude()
+                        }
+                        // [askLatitude, askLongitude][checked]();
+                        setQuestionsVisible(false);
+                    }}/>
+                </Dialog.Actions>
+            </Dialog>
+        </View>
     )
 }

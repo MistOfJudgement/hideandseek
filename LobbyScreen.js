@@ -22,7 +22,7 @@ function Player({playerName}) {
                 onPress={()=>setReady(!ready)}
                 />
         </View>
-            )
+            );
 
 }
 export default function LobbyScreen({navigation, route}) {
@@ -32,7 +32,7 @@ export default function LobbyScreen({navigation, route}) {
         <View style={styles.container}>
             <Text>Lobby</Text>
             <Text>CODE: {code}</Text>
-            {players.map(p=>(<Player player={p}/>))}
+            {players.map((p,i)=>(<Player key={i} playerName={p}/>))}
             <Button title="Start Game" onPress={()=>navigation.navigate("Game")}/>
         </View>
     )
